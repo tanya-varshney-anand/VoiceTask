@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>VoiceTask — Turn voice notes into organized tasks</title>
+<title>VoiceTask — Jumbled thoughts, organized in seconds</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
@@ -19,7 +19,7 @@
   }
   *{box-sizing:border-box; margin:0;}
   html{min-height:100%;}
-  body{color:var(--ink); font-family:'Inter',system-ui,sans-serif; line-height:1.5; min-height:100vh;
+  body{color:var(--ink); font-family:'Space Grotesk',system-ui,sans-serif; line-height:1.5; min-height:100vh;
     background:#E9ECFB;
     background-image:
       radial-gradient(46vw 46vw at 12% 8%,  rgba(91,61,245,.36), transparent 62%),
@@ -31,7 +31,8 @@
   h1{font-family:'Space Grotesk',sans-serif; font-size:clamp(30px,5vw,42px); letter-spacing:-0.02em;
     text-shadow:0 1px 0 rgba(255,255,255,.6);}
   h1 .dot{color:var(--accent);}
-  .sub{color:var(--ink-soft); margin-top:4px; font-size:15px;}
+  .sub{color:var(--ink); margin-top:4px; font-size:17px; font-weight:600;}
+  .helper{color:var(--ink-soft); margin-top:6px; font-size:12.5px; max-width:560px; font-style:italic;}
   .card{background:var(--glass); border:1px solid var(--glass-line); border-radius:var(--radius);
     padding:20px; margin-top:20px;
     backdrop-filter:blur(22px) saturate(160%); -webkit-backdrop-filter:blur(22px) saturate(160%);
@@ -54,13 +55,13 @@
   .mic-label{font-family:'Space Grotesk',sans-serif; font-weight:500;}
   .hint{font-size:13px; color:var(--ink-soft); text-align:center;}
   textarea{width:100%; min-height:96px; border:1px solid var(--glass-line); border-radius:14px; padding:12px 14px;
-    font:14px/1.5 'Inter',sans-serif; color:var(--ink); resize:vertical;
+    font:14px/1.5 'Space Grotesk',sans-serif; color:var(--ink); resize:vertical;
     background:rgba(255,255,255,.55);
     backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);}
-  textarea::placeholder{color:#7A81A6;}
+  textarea::placeholder{color:#7A81A6; font-size:12.5px;}
   textarea:focus{outline:2px solid var(--accent); border-color:transparent; background:rgba(255,255,255,.75);}
   label{font-size:13px; font-weight:600; color:var(--ink-soft); display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:.04em;}
-  .btn{border:none; border-radius:14px; padding:13px 20px; font:600 15px 'Inter',sans-serif; cursor:pointer; transition:opacity .15s, transform .1s;}
+  .btn{border:none; border-radius:14px; padding:13px 20px; font:600 15px 'Space Grotesk',sans-serif; cursor:pointer; transition:opacity .15s, transform .1s;}
   .btn:disabled{opacity:.45; cursor:not-allowed;}
   .btn-primary{width:100%; margin-top:12px; color:#fff;
     background:linear-gradient(135deg, rgba(31,36,68,.95), rgba(23,27,51,.95));
@@ -71,14 +72,15 @@
   .status.err{color:var(--red);} .status.ok{color:var(--green);} .status.busy{color:var(--accent-deep);}
   .group-title{font-family:'Space Grotesk',sans-serif; font-size:15px; font-weight:700; letter-spacing:.02em;
     margin:22px 0 8px; padding-bottom:6px; border-bottom:1px solid rgba(91,61,245,.35); display:flex; justify-content:space-between;}
-  .group-title .count{color:var(--ink-soft); font-family:'Inter'; font-weight:500; font-size:13px;}
-  .task{display:flex; align-items:flex-start; gap:12px; padding:12px 6px; border-bottom:1px solid rgba(255,255,255,.55); border-radius:10px;}
+  .group-title .count{color:var(--ink-soft); font-family:'Space Grotesk'; font-weight:500; font-size:13px;}
+  .task{padding:12px 6px; border-bottom:1px solid rgba(255,255,255,.55); border-radius:10px;}
   .task:hover{background:rgba(255,255,255,.30);}
   .task:last-child{border-bottom:none;}
+  .task-main{display:flex; align-items:flex-start; gap:12px;}
   .task.done .t-title{text-decoration:line-through; color:var(--ink-soft);}
   .t-body{flex:1; min-width:0;}
   .t-title{font-weight:500; font-size:15px;}
-  .chips{display:flex; gap:6px; flex-wrap:wrap; margin-top:5px;}
+  .chips{display:flex; gap:6px; flex-wrap:wrap; margin-top:5px; align-items:center;}
   .chip{font-size:11.5px; font-weight:600; padding:3px 10px; border-radius:99px;
     border:1px solid rgba(255,255,255,.6);
     backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);}
@@ -89,7 +91,11 @@
   .chip.due{background:rgba(255,255,255,.45); color:var(--ink-soft);}
   .chip.p-High,.chip.p-Medium,.chip.p-Low{cursor:pointer; user-select:none;}
   .chip.p-High:hover,.chip.p-Medium:hover,.chip.p-Low:hover{filter:brightness(0.94);}
-  .t-actions{display:flex; gap:6px; flex-shrink:0;}
+  .move-select{font:600 11.5px 'Space Grotesk',sans-serif; color:var(--ink-soft); padding:3px 6px; border-radius:99px;
+    border:1px solid rgba(255,255,255,.6); background:rgba(255,255,255,.45); cursor:pointer;
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);}
+  .move-select:hover{background:rgba(255,255,255,.7); color:var(--ink);}
+  .t-actions{display:flex; gap:6px; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end;}
   .icon-btn{border:1px solid var(--glass-line); background:rgba(255,255,255,.5); border-radius:10px;
     padding:6px 10px; font-size:12.5px; font-weight:600; cursor:pointer; color:var(--ink-soft);
     backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); text-decoration:none; display:inline-flex; align-items:center;}
@@ -97,10 +103,24 @@
   .icon-btn.danger:hover{color:var(--red); border-color:rgba(239,68,68,.5);}
   .icon-btn.cal{color:var(--accent-deep); border-color:rgba(91,61,245,.45);}
   .icon-btn.cal:hover{background:rgba(91,61,245,.14);}
+  .edit-panel{margin-top:10px; padding:12px; border-radius:14px; border:1px solid rgba(91,61,245,.35);
+    background:rgba(255,255,255,.5);
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);}
+  .edit-panel input{width:100%; border:1px solid var(--glass-line); border-radius:10px; padding:9px 12px;
+    font:13.5px 'Space Grotesk',sans-serif; color:var(--ink); background:rgba(255,255,255,.7);}
+  .edit-panel input:focus{outline:2px solid var(--accent); border-color:transparent;}
+  .edit-row{display:flex; gap:8px; margin-top:8px;}
+  .mini-btn{border:none; border-radius:10px; padding:8px 14px; font:600 12.5px 'Space Grotesk',sans-serif; cursor:pointer;}
+  .mini-btn.go{color:#fff; background:linear-gradient(135deg, rgba(91,61,245,.95), rgba(59,31,208,.95));}
+  .mini-btn.go:disabled{opacity:.5; cursor:not-allowed;}
+  .mini-btn.cancel{background:rgba(255,255,255,.6); color:var(--ink-soft); border:1px solid var(--glass-line);}
+  .edit-status{font-size:12.5px; margin-top:6px; font-weight:500;}
+  .edit-status.err{color:var(--red);} .edit-status.busy{color:var(--accent-deep);}
   .toolbar{display:flex; justify-content:space-between; align-items:center; margin-top:24px;}
   .toolbar h2{font-family:'Space Grotesk',sans-serif; font-size:20px; text-shadow:0 1px 0 rgba(255,255,255,.5);}
-  .clear{background:none; border:none; color:var(--red); font:600 13px 'Inter'; cursor:pointer;}
+  .clear{background:none; border:none; color:var(--red); font:600 13px 'Space Grotesk'; cursor:pointer;}
   .empty{color:var(--ink-soft); font-size:14px; padding:18px 4px;}
+  .tasks-hint{color:var(--ink-soft); font-size:13px; margin-top:4px;}
 </style>
 </head>
 <body>
@@ -120,13 +140,12 @@ function dueDateStr(group){
   const d = new Date();
   if (group === "Tomorrow") d.setDate(d.getDate() + 1);
   else if (group === "This Week") d.setDate(d.getDate() + 3);
-  // Today, Later, Work, Personal, Shopping -> today
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}${m}${day}`;
 }
-// Build a "add to Google Calendar" URL (all-day event on the due date).
+// Build an "add to Google Calendar" URL (all-day event on the due date).
 function calendarUrl(task){
   const start = dueDateStr(task.group);
   const endD = new Date(
@@ -154,6 +173,8 @@ function App(){
   const [status, setStatus] = useState({msg:"", kind:""});
   const [listening, setListening] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Which task is being edited: {id, note, busy, err}
+  const [edit, setEdit] = useState(null);
   const recRef = useRef(null);
   const baseRef = useRef("");
 
@@ -181,21 +202,27 @@ function App(){
     recRef.current = rec; rec.start();
   }
 
+  // Shared caller for the backend.
+  async function askAI(noteText){
+    const res = await fetch("/api/organize", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ text: noteText })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Request failed");
+    return data.tasks || [];
+  }
+
   async function organize(){
     if (!text.trim()){ setStatus({msg:"Nothing to organize yet — record or type a note first.", kind:"err"}); return; }
     setBusy(true); setStatus({msg:"Processing with AI…", kind:"busy"});
     try{
-      const res = await fetch("/api/organize", {
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ text })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Request failed");
-      const fresh = (data.tasks || []).map((t,i) => ({
+      const raw = await askAI(text);
+      const fresh = raw.map((t,i) => ({
         id: Date.now() + "-" + i,
         title: t.title || "Untitled task",
         category: t.category || "Other",
-        priority: ["High","Medium","Low"].includes(t.priority) ? t.priority : "Medium",
+        priority: PRIOS.includes(t.priority) ? t.priority : "Medium",
         due: t.due || "",
         group: GROUP_ORDER.includes(t.group) ? t.group : "Later",
         done: false
@@ -211,17 +238,46 @@ function App(){
     } finally { setBusy(false); }
   }
 
+  // AI-refine one task using the user's note.
+  async function refineTask(){
+    const t = tasks.find(x => x.id === edit.id);
+    if (!t || !edit.note.trim()) return;
+    setEdit(e => ({...e, busy:true, err:""}));
+    try{
+      const prompt =
+        `Existing task: "${t.title}" (category: ${t.category}, priority: ${t.priority}` +
+        (t.due ? `, due: ${t.due}` : "") + `, group: ${t.group}). ` +
+        `Apply this change and return exactly one updated task: ${edit.note}`;
+      const out = await askAI(prompt);
+      const u = out[0];
+      if (!u) throw new Error("AI couldn't refine this task. Try rephrasing the note.");
+      setTasks(ts => ts.map(x => x.id === t.id ? {
+        ...x,
+        title: u.title || x.title,
+        category: u.category || x.category,
+        priority: PRIOS.includes(u.priority) ? u.priority : x.priority,
+        due: (u.due !== undefined) ? u.due : x.due,
+        group: GROUP_ORDER.includes(u.group) ? u.group : x.group
+      } : x));
+      setEdit(null);
+    } catch(err){
+      setEdit(e => ({...e, busy:false, err: err.message}));
+    }
+  }
+
   const toggleDone = id => setTasks(ts => ts.map(t => t.id===id ? {...t, done:!t.done} : t));
   const cyclePrio = id => setTasks(ts => ts.map(t => t.id===id ? {...t, priority: nextPrio(t.priority)} : t));
-  const remove = id => setTasks(ts => ts.filter(t => t.id!==id));
-  const clearAll = () => { if (confirm("Clear all tasks?")) setTasks([]); };
+  const moveGroup = (id, g) => setTasks(ts => ts.map(t => t.id===id ? {...t, group:g} : t));
+  const remove = id => { setTasks(ts => ts.filter(t => t.id!==id)); if (edit && edit.id===id) setEdit(null); };
+  const clearAll = () => { if (confirm("Clear all tasks?")) { setTasks([]); setEdit(null); } };
 
   const groups = GROUP_ORDER.filter(g => tasks.some(t => t.group===g));
 
   return (
     <div className="wrap">
       <h1>VoiceTask<span className="dot">.</span></h1>
-      <p className="sub">Turn quick voice notes into organized tasks.</p>
+      <p className="sub">Jumbled thoughts, organized in seconds.</p>
+      <p className="helper">Tap to speak, review the transcript, and let VoiceTask turn scattered thoughts into a clean to-do list.</p>
 
       <div className="card mic-row">
         <button className={"mic-btn" + (listening ? " listening" : "")} onClick={toggleMic}
@@ -235,9 +291,9 @@ function App(){
       </div>
 
       <div className="card">
-        <label htmlFor="note">Your note — spoken words appear here, or type directly</label>
+        <label htmlFor="note">Spoken words appear here. Edit freely before organizing.</label>
         <textarea id="note" value={text} onChange={e => setText(e.target.value)}
-          placeholder="e.g. Need to send email to client today, follow up with finance tomorrow, book dentist next week, and order groceries…"/>
+          placeholder={'e.g. \u201CSend email to client today, follow up with Finance tomorrow, book dentist next week, and order groceries.\u201D'}/>
         <button className="btn btn-primary" onClick={organize} disabled={busy}>
           {busy ? "Processing…" : "Organize Tasks"}
         </button>
@@ -248,6 +304,7 @@ function App(){
         <h2>Your tasks</h2>
         {tasks.length > 0 && <button className="clear" onClick={clearAll}>Clear all</button>}
       </div>
+      <p className="tasks-hint">Once added, tasks can be tracked, marked by priority, added to your calendar, and sorted into lists — tap any chip or button on a task to try it.</p>
 
       <div className="card">
         {tasks.length === 0 && <div className="empty">No tasks yet. Record or type a note, then press “Organize Tasks”.</div>}
@@ -256,21 +313,47 @@ function App(){
             <div className="group-title">{g}<span className="count">{tasks.filter(t=>t.group===g).length}</span></div>
             {tasks.filter(t => t.group===g).map(t => (
               <div key={t.id} className={"task" + (t.done ? " done" : "")}>
-                <div className="t-body">
-                  <div className="t-title">{t.title}</div>
-                  <div className="chips">
-                    <span className="chip cat">{t.category}</span>
-                    <span className={"chip p-" + t.priority} onClick={() => cyclePrio(t.id)}
-                      title="Tap to change priority">{t.priority}</span>
-                    {t.due && <span className="chip due">{t.due}</span>}
+                <div className="task-main">
+                  <div className="t-body">
+                    <div className="t-title">{t.title}</div>
+                    <div className="chips">
+                      <span className="chip cat">{t.category}</span>
+                      <span className={"chip p-" + t.priority} onClick={() => cyclePrio(t.id)}
+                        title="Tap to change priority">{t.priority} ▾</span>
+                      {t.due && <span className="chip due">{t.due}</span>}
+                      <select className="move-select" value={t.group}
+                        onChange={e => moveGroup(t.id, e.target.value)}
+                        title="Move to another list">
+                        {GROUP_ORDER.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="t-actions">
+                    <a className="icon-btn cal" href={calendarUrl(t)} target="_blank" rel="noopener"
+                      title="Add to Google Calendar">📅</a>
+                    <button className="icon-btn"
+                      onClick={() => setEdit(edit && edit.id===t.id ? null : {id:t.id, note:"", busy:false, err:""})}>
+                      Edit</button>
+                    <button className="icon-btn" onClick={() => toggleDone(t.id)}>{t.done ? "Undo" : "Done"}</button>
+                    <button className="icon-btn danger" onClick={() => remove(t.id)}>Delete</button>
                   </div>
                 </div>
-                <div className="t-actions">
-                  <a className="icon-btn cal" href={calendarUrl(t)} target="_blank" rel="noopener"
-                    title="Add to Google Calendar">📅</a>
-                  <button className="icon-btn" onClick={() => toggleDone(t.id)}>{t.done ? "Undo" : "Done"}</button>
-                  <button className="icon-btn danger" onClick={() => remove(t.id)}>Delete</button>
-                </div>
+                {edit && edit.id === t.id && (
+                  <div className="edit-panel">
+                    <input value={edit.note} autoFocus
+                      onChange={e => setEdit(x => ({...x, note:e.target.value}))}
+                      onKeyDown={e => { if (e.key === "Enter" && !edit.busy) refineTask(); }}
+                      placeholder={'Tell AI what to change — e.g. \u201Cmake this high priority\u201D, \u201Cdue Friday evening\u201D, \u201Crename to Call Rohan re: contract\u201D'}/>
+                    <div className="edit-row">
+                      <button className="mini-btn go" onClick={refineTask} disabled={edit.busy || !edit.note.trim()}>
+                        {edit.busy ? "Refining…" : "Refine with AI"}
+                      </button>
+                      <button className="mini-btn cancel" onClick={() => setEdit(null)}>Cancel</button>
+                    </div>
+                    {edit.err && <div className="edit-status err">{edit.err}</div>}
+                    {edit.busy && <div className="edit-status busy">Asking AI to update this task…</div>}
+                  </div>
+                )}
               </div>
             ))}
           </div>
