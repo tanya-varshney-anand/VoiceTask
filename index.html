@@ -99,6 +99,10 @@
     border:1px solid rgba(255,255,255,.6); background:rgba(255,255,255,.45); cursor:pointer;
     backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);}
   .move-select:hover{background:rgba(255,255,255,.7); color:var(--ink);}
+  .date-input{font:600 11.5px 'Space Grotesk',sans-serif; color:var(--ink-soft); padding:2px 8px; border-radius:99px;
+    border:1px solid rgba(255,255,255,.6); background:rgba(255,255,255,.45); cursor:pointer;
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);}
+  .date-input:hover{background:rgba(255,255,255,.7); color:var(--ink);}
   .t-actions{display:flex; gap:6px; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end;}
   .icon-btn{border:1px solid var(--glass-line); background:rgba(255,255,255,.5); border-radius:10px;
     padding:6px 10px; font-size:12.5px; font-weight:600; cursor:pointer; color:var(--ink-soft);
@@ -154,7 +158,10 @@ function dueDateStr(group){
 }
 // Build an "add to Google Calendar" URL (all-day event on the due date).
 function calendarUrl(task){
-  const start = dueDateStr(task.group);
+  // If the user picked a specific date for a "Later" task, use it.
+  const start = (task.group === "Later" && task.laterDate)
+    ? task.laterDate.replace(/-/g, "")
+    : dueDateStr(task.group);
   const endD = new Date(
     +start.slice(0,4), +start.slice(4,6) - 1, +start.slice(6,8) + 1
   );
@@ -278,6 +285,7 @@ function App(){
   const cyclePrio = id => setTasks(ts => ts.map(t => t.id===id ? {...t, priority: nextPrio(t.priority)} : t));
   const moveGroup = (id, g) => setTasks(ts => ts.map(t => t.id===id ? {...t, group:g} : t));
   const setCategory = (id, c) => setTasks(ts => ts.map(t => t.id===id ? {...t, category:c} : t));
+  const setLaterDate = (id, d) => setTasks(ts => ts.map(t => t.id===id ? {...t, laterDate:d} : t));
   const remove = id => { setTasks(ts => ts.filter(t => t.id!==id)); if (edit && edit.id===id) setEdit(null); };
   const clearAll = () => { if (confirm("Clear all tasks?")) { setTasks([]); setEdit(null); } };
 
@@ -340,6 +348,10 @@ function App(){
                         title="Change timeline">
                         {TIMELINES.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                       </select>
+                      {t.group === "Later" &&
+                        <input type="date" className="date-input" value={t.laterDate || ""}
+                          onChange={e => setLaterDate(t.id, e.target.value)}
+                          title="Pick a date (used for the calendar button)"/>}
                     </div>
                   </div>
                   <div className="t-actions">
