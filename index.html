@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VoiceTask — Turn voice notes into organized tasks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+  :root{
+    --ink:#10182B; --ink-soft:#4A5470; --paper:#F4F6F9; --card:#FFFFFF;
+    --accent:#5B3DF5; --accent-soft:#EDE9FE; --amber:#B45309; --amber-bg:#FEF3C7;
+    --green:#047857; --green-bg:#D1FAE5; --red:#B91C1C; --red-bg:#FEE2E2;
+    --line:#E2E6EF; --radius:14px;
+  }
+  *{box-sizing:border-box; margin:0;}
+  body{background:var(--paper); color:var(--ink); font-family:'Inter',system-ui,sans-serif; line-height:1.5;}
+  .wrap{max-width:720px; margin:0 auto; padding:40px 20px 80px;}
+  h1{font-family:'Space Grotesk',sans-serif; font-size:clamp(30px,5vw,42px); letter-spacing:-0.02em;}
+  h1 .dot{color:var(--accent);}
+  .sub{color:var(--ink-soft); margin-top:4px; font-size:15px;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-top:20px;}
+  .mic-row{display:flex; flex-direction:column; align-items:center; gap:12px; padding:28px 20px;}
+  .mic-btn{position:relative; width:96px; height:96px; border-radius:50%; border:none; cursor:pointer;
+    background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center;
+    transition:transform .15s ease, background .2s;}
+  .mic-btn:hover{transform:scale(1.04);}
+  .mic-btn:focus-visible{outline:3px solid var(--ink); outline-offset:3px;}
+  .mic-btn.listening{background:var(--red);}
+  .ring{position:absolute; inset:0; border-radius:50%; border:2px solid var(--red); opacity:0; pointer-events:none;}
+  .listening .ring{animation:pulse 1.6s ease-out infinite;}
+  .listening .ring:nth-child(2){animation-delay:.8s;}
+  @keyframes pulse{0%{transform:scale(1);opacity:.7}100%{transform:scale(1.9);opacity:0}}
+  @media (prefers-reduced-motion: reduce){ .listening .ring{animation:none;} }
+  .mic-label{font-family:'Space Grotesk',sans-serif; font-weight:500;}
+  .hint{font-size:13px; color:var(--ink-soft); text-align:center;}
+  textarea{width:100%; min-height:96px; border:1px solid var(--line); border-radius:10px; padding:12px 14px;
+    font:14px/1.5 'Inter',sans-serif; color:var(--ink); resize:vertical; background:#FBFCFE;}
+  textarea:focus{outline:2px solid var(--accent); border-color:transparent;}
+  label{font-size:13px; font-weight:600; color:var(--ink-soft); display:block; margin-bottom:6px; text-transform:uppercase; letter-spacing:.04em;}
+  .btn{border:none; border-radius:10px; padding:12px 20px; font:600 15px 'Inter',sans-serif; cursor:pointer; transition:opacity .15s;}
+  .btn:disabled{opacity:.45; cursor:not-allowed;}
+  .btn-primary{background:var(--ink); color:#fff; width:100%; margin-top:12px;}
+  .btn-primary:hover:not(:disabled){opacity:.88;}
+  .status{margin-top:12px; font-size:14px; min-height:20px; font-weight:500;}
+  .status.err{color:var(--red);} .status.ok{color:var(--green);} .status.busy{color:var(--accent);}
+  .group-title{font-family:'Space Grotesk',sans-serif; font-size:15px; font-weight:700; letter-spacing:.02em;
+    margin:22px 0 8px; padding-bottom:6px; border-bottom:2px solid var(--accent-soft); display:flex; justify-content:space-between;}
+  .group-title .count{color:var(--ink-soft); font-family:'Inter'; font-weight:500; font-size:13px;}
+  .task{display:flex; align-items:flex-start; gap:12px; padding:12px 4px; border-bottom:1px solid var(--line);}
+  .task:last-child{border-bottom:none;}
+  .task.done .t-title{text-decoration:line-through; color:var(--ink-soft);}
+  .t-body{flex:1; min-width:0;}
+  .t-title{font-weight:500; font-size:15px;}
+  .chips{display:flex; gap:6px; flex-wrap:wrap; margin-top:5px;}
+  .chip{font-size:11.5px; font-weight:600; padding:2px 9px; border-radius:99px;}
+  .chip.cat{background:var(--accent-soft); color:var(--accent);}
+  .chip.p-High{background:var(--red-bg); color:var(--red);}
+  .chip.p-Medium{background:var(--amber-bg); color:var(--amber);}
+  .chip.p-Low{background:var(--green-bg); color:var(--green);}
+  .chip.due{background:#EDF1F7; color:var(--ink-soft);}
+  .t-actions{display:flex; gap:6px; flex-shrink:0;}
+  .icon-btn{border:1px solid var(--line); background:#fff; border-radius:8px; padding:6px 10px; font-size:12.5px;
+    font-weight:600; cursor:pointer; color:var(--ink-soft);}
+  .icon-btn:hover{border-color:var(--ink-soft); color:var(--ink);}
+  .icon-btn.danger:hover{border-color:var(--red); color:var(--red);}
+  .toolbar{display:flex; justify-content:space-between; align-items:center; margin-top:24px;}
+  .toolbar h2{font-family:'Space Grotesk',sans-serif; font-size:20px;}
+  .clear{background:none; border:none; color:var(--red); font:600 13px 'Inter'; cursor:pointer;}
+  .empty{color:var(--ink-soft); font-size:14px; padding:18px 4px;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef } = React;
+
+const GROUP_ORDER = ["Today","Tomorrow","This Week","Later","Work","Personal","Shopping"];
+const load = (k, fb) => { try { return JSON.parse(localStorage.getItem(k)) ?? fb; } catch { return fb; } };
+
+function MicIcon(){ return (
+  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4M8 21h8"/>
+  </svg>);}
+
+function App(){
+  const [text, setText] = useState(() => load("vt_text",""));
+  const [tasks, setTasks] = useState(() => load("vt_tasks",[]));
+  const [status, setStatus] = useState({msg:"", kind:""});
+  const [listening, setListening] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const recRef = useRef(null);
+  const baseRef = useRef("");
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const voiceOK = !!SR;
+
+  useEffect(() => localStorage.setItem("vt_text", JSON.stringify(text)), [text]);
+  useEffect(() => localStorage.setItem("vt_tasks", JSON.stringify(tasks)), [tasks]);
+
+  function toggleMic(){
+    if (listening){ recRef.current?.stop(); return; }
+    const rec = new SR();
+    rec.lang = "en-IN"; rec.continuous = true; rec.interimResults = true;
+    baseRef.current = text ? text.trim() + " " : "";
+    rec.onresult = (e) => {
+      let heard = "";
+      for (const r of e.results) heard += r[0].transcript;
+      setText(baseRef.current + heard);
+    };
+    rec.onstart = () => { setListening(true); setStatus({msg:"Listening… speak naturally, tap again to stop.", kind:"busy"}); };
+    rec.onerror = (e) => setStatus({msg: e.error === "not-allowed"
+      ? "Microphone blocked. Allow mic access in the address bar, or type your note below."
+      : "Voice input hit a snag (" + e.error + "). You can type your note below.", kind:"err"});
+    rec.onend = () => { setListening(false); setStatus(s => s.kind==="err" ? s : {msg:"Voice captured. Edit the note if needed, then organize.", kind:"ok"}); };
+    recRef.current = rec; rec.start();
+  }
+
+  async function organize(){
+    if (!text.trim()){ setStatus({msg:"Nothing to organize yet — record or type a note first.", kind:"err"}); return; }
+    setBusy(true); setStatus({msg:"Processing with AI…", kind:"busy"});
+    try{
+      const res = await fetch("/api/organize", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ text })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Request failed");
+      const fresh = (data.tasks || []).map((t,i) => ({
+        id: Date.now() + "-" + i,
+        title: t.title || "Untitled task",
+        category: t.category || "Other",
+        priority: ["High","Medium","Low"].includes(t.priority) ? t.priority : "Medium",
+        due: t.due || "",
+        group: GROUP_ORDER.includes(t.group) ? t.group : "Later",
+        done: false
+      }));
+      if (!fresh.length){ setStatus({msg:"No actionable tasks found in that note. Try adding a bit more detail.", kind:"err"}); }
+      else {
+        setTasks(prev => [...prev, ...fresh]);
+        setStatus({msg:`Tasks generated — ${fresh.length} added.`, kind:"ok"});
+        setText("");
+      }
+    } catch(err){
+      setStatus({msg:"Couldn't organize tasks: " + err.message + " Your note is still saved above — try again.", kind:"err"});
+    } finally { setBusy(false); }
+  }
+
+  const toggleDone = id => setTasks(ts => ts.map(t => t.id===id ? {...t, done:!t.done} : t));
+  const remove = id => setTasks(ts => ts.filter(t => t.id!==id));
+  const clearAll = () => { if (confirm("Clear all tasks?")) setTasks([]); };
+
+  const groups = GROUP_ORDER.filter(g => tasks.some(t => t.group===g));
+
+  return (
+    <div className="wrap">
+      <h1>VoiceTask<span className="dot">.</span></h1>
+      <p className="sub">Turn quick voice notes into organized tasks.</p>
+
+      <div className="card mic-row">
+        <button className={"mic-btn" + (listening ? " listening" : "")} onClick={toggleMic}
+          disabled={!voiceOK} aria-label={listening ? "Stop recording" : "Start recording"}>
+          <span className="ring"></span><span className="ring"></span><MicIcon/>
+        </button>
+        <div className="mic-label">{listening ? "Recording — tap to stop" : "Tap to speak"}</div>
+        <div className="hint">{voiceOK
+          ? "Works best in Chrome or Edge. Or just type your note below."
+          : "Voice isn't supported in this browser — type your note below instead."}</div>
+      </div>
+
+      <div className="card">
+        <label htmlFor="note">Your note — spoken words appear here, or type directly</label>
+        <textarea id="note" value={text} onChange={e => setText(e.target.value)}
+          placeholder="e.g. Need to send email to client today, follow up with finance tomorrow, book dentist next week, and order groceries…"/>
+        <button className="btn btn-primary" onClick={organize} disabled={busy}>
+          {busy ? "Processing…" : "Organize Tasks"}
+        </button>
+        <div className={"status " + status.kind} role="status">{status.msg}</div>
+      </div>
+
+      <div className="toolbar">
+        <h2>Your tasks</h2>
+        {tasks.length > 0 && <button className="clear" onClick={clearAll}>Clear all</button>}
+      </div>
+
+      <div className="card">
+        {tasks.length === 0 && <div className="empty">No tasks yet. Record or type a note, then press “Organize Tasks”.</div>}
+        {groups.map(g => (
+          <div key={g}>
+            <div className="group-title">{g}<span className="count">{tasks.filter(t=>t.group===g).length}</span></div>
+            {tasks.filter(t => t.group===g).map(t => (
+              <div key={t.id} className={"task" + (t.done ? " done" : "")}>
+                <div className="t-body">
+                  <div className="t-title">{t.title}</div>
+                  <div className="chips">
+                    <span className="chip cat">{t.category}</span>
+                    <span className={"chip p-" + t.priority}>{t.priority}</span>
+                    {t.due && <span className="chip due">{t.due}</span>}
+                  </div>
+                </div>
+                <div className="t-actions">
+                  <button className="icon-btn" onClick={() => toggleDone(t.id)}>{t.done ? "Undo" : "Done"}</button>
+                  <button className="icon-btn danger" onClick={() => remove(t.id)}>Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

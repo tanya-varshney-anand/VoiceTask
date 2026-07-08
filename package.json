@@ -1,0 +1,7 @@
+{
+  "name": "voicetask",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Turn quick voice notes into organized tasks (Meesho Buildathon)",
+  "scripts": { "start": "node server.js" }
+}
