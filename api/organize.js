@@ -1,9 +1,13 @@
 // Backend: turns a messy voice note into structured tasks.
 // Uses the Meesho Buildathon "Bifrost" gateway (OpenAI-style chat completions).
 // The API key is read from an environment variable, so it is never in the browser.
+// This version is defensive: it accepts several possible response shapes and
+// several possible JSON layouts, so small differences in the gateway output
+// won't break it.
 
 const SYSTEM_PROMPT = `You convert messy voice notes into clean to-do lists.
-Return ONLY valid JSON, no markdown fences, no commentary, in this exact shape:
+Return ONLY a valid JSON object. No markdown, no code fences, no commentary.
+Use exactly this shape:
 {"tasks":[{"title":"...","category":"...","priority":"...","due":"...","group":"..."}]}
 
 Rules:
@@ -17,6 +21,56 @@ Rules:
   this week/named weekday->This Week, next week or later->Later).
   If no timing, use the closest category group (Work, Shopping, else Personal).
 - If there are no actionable tasks, return {"tasks":[]}.`;
+
+// Pull the model's text out of whatever response shape the gateway returns.
+function extractText(data) {
+  if (!data) return "";
+  // OpenAI chat style
+  if (data.choices && data.choices[0]) {
+    const c = data.choices[0];
+    if (c.message && typeof c.message.content === "string") return c.message.content;
+    if (typeof c.text === "string") return c.text;
+    // content as array of parts
+    if (c.message && Array.isArray(c.message.content)) {
+      return c.message.content.map(p => (typeof p === "string" ? p : (p.text || ""))).join("");
+    }
+  }
+  // Anthropic style
+  if (Array.isArray(data.content)) {
+    return data.content.filter(b => b.type === "text").map(b => b.text).join("\n");
+  }
+  if (typeof data.content === "string") return data.content;
+  if (typeof data.output_text === "string") return data.output_text;
+  if (typeof data.text === "string") return data.text;
+  return "";
+}
+
+// Find a JSON object/array inside a text blob and parse it.
+function parseTasks(raw) {
+  const cleaned = String(raw).replace(/```json/gi, "").replace(/```/g, "").trim();
+  // Try direct parse first.
+  const tryParse = (s) => { try { return JSON.parse(s); } catch { return null; } };
+
+  let obj = tryParse(cleaned);
+  if (!obj) {
+    // Grab the outermost {...}
+    const s = cleaned.indexOf("{");
+    const e = cleaned.lastIndexOf("}");
+    if (s !== -1 && e !== -1 && e > s) obj = tryParse(cleaned.slice(s, e + 1));
+  }
+  if (!obj) {
+    // Maybe it's a bare array [...]
+    const s = cleaned.indexOf("[");
+    const e = cleaned.lastIndexOf("]");
+    if (s !== -1 && e !== -1 && e > s) {
+      const arr = tryParse(cleaned.slice(s, e + 1));
+      if (Array.isArray(arr)) return arr;
+    }
+  }
+  if (Array.isArray(obj)) return obj;
+  if (obj && Array.isArray(obj.tasks)) return obj.tasks;
+  return null;
+}
 
 module.exports = async (req, res) => {
   if (req.method !== "POST") {
@@ -41,6 +95,7 @@ module.exports = async (req, res) => {
       body: JSON.stringify({
         model: "gpt-4o",
         max_tokens: 1000,
+        temperature: 0,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: "Voice note:\n" + text }
@@ -54,16 +109,18 @@ module.exports = async (req, res) => {
       return res.status(502).json({ error: String(msg) });
     }
 
-    const raw = (data.choices && data.choices[0] && data.choices[0].message
-      && data.choices[0].message.content) || "";
+    const raw = extractText(data);
+    const tasks = parseTasks(raw);
 
-    const cleaned = String(raw).replace(/```json|```/g, "").trim();
-    const start = cleaned.indexOf("{");
-    const end = cleaned.lastIndexOf("}");
-    const parsed = JSON.parse(cleaned.slice(start, end + 1));
-
-    return res.status(200).json({ tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [] });
+    if (!tasks) {
+      // Could not find JSON. Surface a short snippet so it's debuggable.
+      return res.status(500).json({
+        error: "AI reply wasn't in the expected format.",
+        debug: String(raw).slice(0, 300)
+      });
+    }
+    return res.status(200).json({ tasks });
   } catch (err) {
-    return res.status(500).json({ error: "Could not parse the AI response. Please try again." });
+    return res.status(500).json({ error: "Something went wrong: " + err.message });
   }
 };
