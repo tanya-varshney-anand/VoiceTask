@@ -1,6 +1,6 @@
-// Backend: turns a messy voice note into structured tasks using the Claude API.
-// Runs as a Vercel serverless function (Node.js). The API key is read from an
-// environment variable, so it is never visible in the browser.
+// Backend: turns a messy voice note into structured tasks.
+// Uses the Meesho Buildathon "Bifrost" gateway (OpenAI-style chat completions).
+// The API key is read from an environment variable, so it is never in the browser.
 
 const SYSTEM_PROMPT = `You convert messy voice notes into clean to-do lists.
 Return ONLY valid JSON, no markdown fences, no commentary, in this exact shape:
@@ -24,7 +24,7 @@ module.exports = async (req, res) => {
   }
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: "Server is missing the Claude API key (ANTHROPIC_API_KEY)." });
+    return res.status(500).json({ error: "Server is missing the API key." });
   }
   const text = (req.body && req.body.text ? String(req.body.text) : "").slice(0, 4000);
   if (!text.trim()) {
@@ -32,34 +32,32 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
+    const r = await fetch("https://gateway-buildathon.ltl.sh/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01"
+        "Authorization": "Bearer " + apiKey
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
+        model: "gpt-4o",
         max_tokens: 1000,
-        system: SYSTEM_PROMPT,
-        messages: [{ role: "user", content: "Voice note:\n" + text }]
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: "Voice note:\n" + text }
+        ]
       })
     });
 
     const data = await r.json();
     if (!r.ok) {
-      const msg = (data && data.error && data.error.message) || "Claude API error.";
-      return res.status(502).json({ error: msg });
+      const msg = (data && data.error && (data.error.message || data.error)) || "Gateway error.";
+      return res.status(502).json({ error: String(msg) });
     }
 
-    const raw = (data.content || [])
-      .filter(b => b.type === "text")
-      .map(b => b.text)
-      .join("\n");
+    const raw = (data.choices && data.choices[0] && data.choices[0].message
+      && data.choices[0].message.content) || "";
 
-    // Strip accidental markdown fences and grab the JSON object.
-    const cleaned = raw.replace(/```json|```/g, "").trim();
+    const cleaned = String(raw).replace(/```json|```/g, "").trim();
     const start = cleaned.indexOf("{");
     const end = cleaned.lastIndexOf("}");
     const parsed = JSON.parse(cleaned.slice(start, end + 1));
