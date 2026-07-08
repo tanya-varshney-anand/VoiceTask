@@ -91,6 +91,10 @@
   .chip.due{background:rgba(255,255,255,.45); color:var(--ink-soft);}
   .chip.p-High,.chip.p-Medium,.chip.p-Low{cursor:pointer; user-select:none;}
   .chip.p-High:hover,.chip.p-Medium:hover,.chip.p-Low:hover{filter:brightness(0.94);}
+  .cat-select{font:600 11.5px 'Space Grotesk',sans-serif; color:var(--accent-deep); padding:3px 6px; border-radius:99px;
+    border:1px solid rgba(255,255,255,.6); background:rgba(91,61,245,.16); cursor:pointer;
+    backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);}
+  .cat-select:hover{background:rgba(91,61,245,.24);}
   .move-select{font:600 11.5px 'Space Grotesk',sans-serif; color:var(--ink-soft); padding:3px 6px; border-radius:99px;
     border:1px solid rgba(255,255,255,.6); background:rgba(255,255,255,.45); cursor:pointer;
     backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);}
@@ -119,7 +123,7 @@
   .toolbar{display:flex; justify-content:space-between; align-items:center; margin-top:24px;}
   .toolbar h2{font-family:'Space Grotesk',sans-serif; font-size:20px; text-shadow:0 1px 0 rgba(255,255,255,.5);}
   .clear{background:none; border:none; color:var(--red); font:600 13px 'Space Grotesk'; cursor:pointer;}
-  .empty{color:var(--ink-soft); font-size:14px; padding:18px 4px;}
+  .empty{color:var(--ink-soft); font-size:12.5px; padding:18px 4px;}
   .tasks-hint{color:var(--ink-soft); font-size:13px; margin-top:4px;}
 </style>
 </head>
@@ -128,7 +132,10 @@
 <script type="text/babel" data-presets="react">
 const { useState, useEffect, useRef } = React;
 
-const GROUP_ORDER = ["Today","Tomorrow","This Week","Later","Work","Personal","Shopping"];
+const TIMELINES = ["Today","Tomorrow","This Week","Later"];
+const CATS = ["Work","Personal","Shopping","Health","Finance","Follow-up","Other"];
+// Old saved tasks (and the AI) may use category names as groups - map those to a timeline.
+const normTimeline = g => TIMELINES.includes(g) ? g : "Later";
 const load = (k, fb) => { try { return JSON.parse(localStorage.getItem(k)) ?? fb; } catch { return fb; } };
 
 // Cycle priority High -> Medium -> Low -> High
@@ -169,7 +176,9 @@ function MicIcon(){ return (
 
 function App(){
   const [text, setText] = useState(() => load("vt_text",""));
-  const [tasks, setTasks] = useState(() => load("vt_tasks",[]));
+  const [tasks, setTasks] = useState(() =>
+    load("vt_tasks",[]).map(t => ({...t, group: normTimeline(t.group),
+      category: CATS.includes(t.category) ? t.category : (CATS.includes(t.group) ? t.group : "Other")})));
   const [status, setStatus] = useState({msg:"", kind:""});
   const [listening, setListening] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -221,10 +230,10 @@ function App(){
       const fresh = raw.map((t,i) => ({
         id: Date.now() + "-" + i,
         title: t.title || "Untitled task",
-        category: t.category || "Other",
+        category: CATS.includes(t.category) ? t.category : (CATS.includes(t.group) ? t.group : "Other"),
         priority: PRIOS.includes(t.priority) ? t.priority : "Medium",
         due: t.due || "",
-        group: GROUP_ORDER.includes(t.group) ? t.group : "Later",
+        group: normTimeline(t.group),
         done: false
       }));
       if (!fresh.length){ setStatus({msg:"No actionable tasks found in that note. Try adding a bit more detail.", kind:"err"}); }
@@ -254,10 +263,10 @@ function App(){
       setTasks(ts => ts.map(x => x.id === t.id ? {
         ...x,
         title: u.title || x.title,
-        category: u.category || x.category,
+        category: CATS.includes(u.category) ? u.category : x.category,
         priority: PRIOS.includes(u.priority) ? u.priority : x.priority,
         due: (u.due !== undefined) ? u.due : x.due,
-        group: GROUP_ORDER.includes(u.group) ? u.group : x.group
+        group: TIMELINES.includes(u.group) ? u.group : x.group
       } : x));
       setEdit(null);
     } catch(err){
@@ -268,10 +277,11 @@ function App(){
   const toggleDone = id => setTasks(ts => ts.map(t => t.id===id ? {...t, done:!t.done} : t));
   const cyclePrio = id => setTasks(ts => ts.map(t => t.id===id ? {...t, priority: nextPrio(t.priority)} : t));
   const moveGroup = (id, g) => setTasks(ts => ts.map(t => t.id===id ? {...t, group:g} : t));
+  const setCategory = (id, c) => setTasks(ts => ts.map(t => t.id===id ? {...t, category:c} : t));
   const remove = id => { setTasks(ts => ts.filter(t => t.id!==id)); if (edit && edit.id===id) setEdit(null); };
   const clearAll = () => { if (confirm("Clear all tasks?")) { setTasks([]); setEdit(null); } };
 
-  const groups = GROUP_ORDER.filter(g => tasks.some(t => t.group===g));
+  const groups = TIMELINES.filter(g => tasks.some(t => t.group===g));
 
   return (
     <div className="wrap">
@@ -317,14 +327,18 @@ function App(){
                   <div className="t-body">
                     <div className="t-title">{t.title}</div>
                     <div className="chips">
-                      <span className="chip cat">{t.category}</span>
+                      <select className="cat-select" value={t.category}
+                        onChange={e => setCategory(t.id, e.target.value)}
+                        title="Change category">
+                        {CATS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
                       <span className={"chip p-" + t.priority} onClick={() => cyclePrio(t.id)}
                         title="Tap to change priority">{t.priority} ▾</span>
                       {t.due && <span className="chip due">{t.due}</span>}
                       <select className="move-select" value={t.group}
                         onChange={e => moveGroup(t.id, e.target.value)}
-                        title="Move to another list">
-                        {GROUP_ORDER.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                        title="Change timeline">
+                        {TIMELINES.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                       </select>
                     </div>
                   </div>
